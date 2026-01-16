@@ -5,16 +5,16 @@ description: "Friday January 9^th^, 2026"
 format: html
 ---
 
-## Activity 1: Creating Tidy Tables 
+## Activity 1: Creating Tidy Tables
 
-There are many different ways to create tidy tables in R. You might be familiar with the `kable` function from `{knitr}` that creates tables for rectangular data. Kable tables don't have a ton of flexibility, but are great at producing clean, simple tables. As we move into creating tables for the many different statistical models we will learn in this course, we will need to move beyond a simple kable table. That is where `{gt}` comes in!
-A `{gt}` table allows for the following structure, making it ideal for displaying different statistical outcomes. 
+There are many different ways to create tidy tables in R. You might be familiar with the `kable` function from `{knitr}` that creates tables for rectangular data. Kable tables don't have a ton of flexibility, but are great at producing clean, simple tables. As we move into creating tables for the many different statistical models we will learn in this course, we will need to move beyond a simple kable table. That is where `{gt}` comes in! A `{gt}` table allows for the following structure, making it ideal for displaying different statistical outcomes.
 
 ```{r, echo=FALSE}
 knitr::include_graphics(here::here("week1", "images", "gt_table.svg"))
 ```
 
-We are going to use our class survey data to create some tables! 
+We are going to use our class survey data to create some tables!
+
 ```{r}
 #| warning: false
 #| message: false
@@ -33,9 +33,7 @@ class_data <- read_csv("https://raw.github.com/garberadamc/W26-Policy-Eval/main/
 
 ```
 
-
-Let's create a base table that we will use with both `kable` and `gt`. 
-
+Let's create a base table that we will use with both `kable` and `gt`.
 
 ```{r}
 # Create the base summary object
@@ -55,9 +53,7 @@ balance_summary
 
 ```
 
-
-
-Now lets output our `balance_summary` with a kable table! 
+Now lets output our `balance_summary` with a kable table!
 
 ```{r}
 balance_summary %>%
@@ -67,7 +63,7 @@ balance_summary %>%
   )
 ```
 
-It looks fine... But we can make it a lot nicer with `{gt}`! 
+It looks fine... But we can make it a lot nicer with `{gt}`!
 
 ```{r}
 # Convert our balance summary table to a gt table
@@ -99,20 +95,20 @@ balance_summary %>%
 
 ```
 
-The `{gt}` table looks a lot cleaner! Let's move on with creating some more `{gt}` tables! 
+The `{gt}` table looks a lot cleaner! Let's move on with creating some more `{gt}` tables!
 
-We are going to use data from the [Moland et al. 2013](https://drive.google.com/file/d/1TjKa7gH9YVCSpG4HeWb7LFFbsqoSEYeQ/view) study on Lobster MPAS. 
+We are going to use data from the [Moland et al. 2013](https://drive.google.com/file/d/1TjKa7gH9YVCSpG4HeWb7LFFbsqoSEYeQ/view) study on Lobster MPAS.
 
-The data we will be working with has the following variables: 
+The data we will be working with has the following variables:
 
 | Variable | Data Type | Descriptions |
-|----------|-----------|--------------|
+|----|----|----|
 | year | Numeric (5-levels) | Years measured from 2006 to 2010 |
 | region | Character (3-levels) | bol= Bolærne , kve = Kvernskjær , flo = Flødevigen |
 | treat | Character (2-levels) | mpa = treatment , con = control |
 | cpue | Numeric | Catch per unit effort |
 
-Let's read in our data to get started! 
+Let's read in our data to get started!
 
 ```{r}
 #| warning: false
@@ -120,12 +116,11 @@ Let's read in our data to get started!
 lobsters <- read_csv("https://raw.github.com/garberadamc/Lab2-EDS241-Moland13/main/data/moland13_lobsters.csv")
 ```
 
-We will start with creating a table for the total CPUE for each year and region. 
+We will start with creating a table for the total CPUE for each year and region.
 
-To create a table with a column for each region, we need to untidy our data! We will do so by pivoting our data into wide format, with a column for each region, and the CPU for each year in that specific region. 
+To create a table with a column for each region, we need to untidy our data! We will do so by pivoting our data into wide format, with a column for each region, and the CPU for each year in that specific region.
 
 This will be a 2 way table, since we are displaying data for two variables.
-
 
 ```{r}
 tbl_2way <- lobsters %>%
@@ -163,7 +158,7 @@ tbl_2way %>%
       "Source: Moland et al., 2013")
 ```
 
-Let's now add our `treat` variable into the table, so we can see how lobster catch varied within our control and MPA groups. This will be a 3 way table! 
+Let's now add our `treat` variable into the table, so we can see how lobster catch varied within our control and MPA groups. This will be a 3 way table!
 
 ```{r}
 tbl_3way <- lobsters %>%
@@ -212,9 +207,9 @@ fancy_table
 
 ```
 
-#### Time to get REALLY fancy! 
+#### Time to get REALLY fancy!
 
-We can add plots within our table as well! While maybe not completely necessary in this instance, it can be a helpful tool to have! 
+We can add plots within our table as well! While maybe not completely necessary in this instance, it can be a helpful tool to have!
 
 ```{r}
 table_w_plots <- lobsters %>%
@@ -244,7 +239,6 @@ table_w_plots <- lobsters %>%
 table_w_plots
 ```
 
-
 ```{r}
 library(praise)
 library(cowsay)
@@ -257,12 +251,10 @@ say("All done making some beautiful tables! :) ", "whale"); beep(3)
 say("All done making some beautiful tables! :) ", "dragon"); beep(3)
 ```
 
-## Activity 2: Buntaine Policy Study Reading Comprehension Check 
+## Activity 2: Buntaine Policy Study Reading Comprehension Check
 
-With your group, answer the following questions from the Buntaine article. 
+With your group, answer the following questions from the Buntaine article.
 
-1. What prompted this study? 
-2. How were the treatment and control groups formed? 
-3. Was the social competition strategy effective? 
-
-
+1.  What prompted this study?
+2.  How were the treatment and control groups formed?
+3.  Was the social competition strategy effective?
