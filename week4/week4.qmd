@@ -141,7 +141,7 @@ data_clean %>%
 
 **Q2.** Pick one of those imbalanced covariates and explain why it might confound the estimate of the effect of MPAs on fish biomass.
 
-*Response:* reef_exposure (exposed) - More exposed reef will be getting more nutrients.
+*Response:* reef_exposure (exposed). Exposed reefs may receive more nutrients and water flow, naturally boosting fish biomass. At the same time, exposed reefs might be less likely to be chosen as MPAs because they're harder to protect. This creates confounding. We might think MPAs have less effect when really it's just that non-MPA sites happen to have better natural conditions.
 
 ------------------------------------------------------------------------
 
