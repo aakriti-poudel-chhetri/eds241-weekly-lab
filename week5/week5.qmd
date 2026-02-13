@@ -338,4 +338,4 @@ final_plot
 How do the results of these countries compare with the results from Neal 2024?
 
 
-**RESPONSE**:
+**RESPONSE**: (check discontinuity line)
