@@ -1,0 +1,361 @@
+---
+title: "Lab: Synthetic Control Method (SCM)"
+subtitle: "Simulated Dataset: California Cap-and-Trade SCM Lab"
+author: "EDS241 / ESM244"
+format: html
+editor: visual
+---
+
+# Synthetic Control Method Review
+
+## Case Study: California Cap-and-Trade Policy (2013)
+
+California's cap-and-trade program, launched in 2013, places a cap on total greenhouse gas emissions. Firms must hold permits to emit CO₂, creating a market-based environmental regulation. Our evaluation question is: **Did this policy reduce emissions?**
+
+### The Fundamental Problem
+
+We observe California **with** the cap-and-trade policy. We do **not** observe California **without** the cap-and-trade policy. This is the fundamental problem of causal inference in this setting — we need a **credible counterfactual**.
+
+### Why Not Just Compare California to Other States?
+
+A simple comparison of California to other states runs into several problems: states differ in their energy mix, they experience different economic growth trajectories, they follow different environmental trends, and some states have their own cap-and-trade policies. We need a better counterfactual comparison.
+
+### Core Idea of Synthetic Control
+
+The solution is to create a **"Synthetic California"** — a weighted average of states that did not receive the policy treatment. SCM is a data-driven method that chooses weights so that pre-treatment emissions trends match closely (i.e., pre-2013) and covariates match (income, coal share, electricity price).
+
+### When Do We Use Synthetic Control?
+
+We use SCM when we have **one aggregate unit** that receives the treatment (policy) — for example, a city, state, or nation — and we need a group of comparison units to synthesize the control. In SCM, this comparison group is called the **"donor pool"**.
+
+According to Abadie (2021), SCM works best with:
+
+-   One treated unit
+-   Many potential controls
+-   A long pre-treatment period (panel data)
+-   Not too much pre-treatment volatility
+-   Clear intervention timing
+
+### Donor Pool Criteria
+
+Following the approach in Lessmann & Kramer (2024), the donor pool should **exclude** states with cap-and-trade policies during the measurement period or similar energy policies that would affect emissions (i.e., alternative treatment channels). In their study, excluded states included Connecticut, Delaware, Maine, Maryland, Massachusetts, New Hampshire, New Jersey, New York, Rhode Island, and Vermont.
+
+### Seeing the Treatment Effect
+
+If synthetic CA looks like real CA before 2013 (i.e., in emissions), then synthetic CA approximates "what would have happened without cap-and-trade." The treatment effect at each post-treatment period is the gap between observed and synthetic outcomes.
+
+Before the 2013 policy: Real CA $\approx$ Synthetic CA.
+
+After the 2013 policy: the gap equals the treatment effect.
+
+### Pre-Treatment Fit Is Key to Identification
+
+Good pre-treatment fit is the key credibility condition.If we cannot match trends before treatment, we cannot trust the counterfactual after. When evaluating the pre-treatment fit, consider how many measurement time points are available, the volatility of the trend, and the magnitude of deviations between observed and synthetic California.
+
+1.  Why can't we simply pick a single state (e.g., Texas) as a comparison for California? What problems would a simple comparison introduce?
+
+**RESPONSE:**
+We can't simply pick a single state (e.g., Texas) as a comparison for California because no state is similar enough to California across all the factors that drive emissions such as energy mix, economic structure, population trends and environmental regulations. Any post-2013 difference in emissions could be driven by these pre-existing differences rather than the cap-and-trade policy, so we can't credibly attribute the change to the treatment.
+
+SCM fixes this by creating a weighted combination of multiple states that together replicate California's pre-treatment trends and key covariates, providing a far more credible counterfactual.
+
+2.  What does it mean if the synthetic control closely tracks the treated unit in the pre-treatment period? What if it doesn't?
+
+**RESPONSE:** If the synthetic control closely tracks California before 2013, it means the weighted combination of donor states successfully captures California's emissions pattern and key characteristics. This gives us confidence that the synthetic control is a credible counterfactual, so any gap that appears after 2013 can reasonably be attributed to the cap-and-trade policy.
+
+If the pre-treatment fit is poor, we can't trust the post-treatment comparison. A synthetic control that fails to match California before the policy gives us no reason to believe it reflects what California would have experienced without it, making any estimated treatment effect unreliable.
+
+[Simplified for undestanding]
+
+We're trying to figure out what California's emissions would have been if the policy never happened. So we build a "fake California" from other states.
+
+If the fake California matches the real one before 2013, that's great. It means our fake version behaves just like the real California. So after 2013, if the two start to separate, we can say that difference is probably because of the policy.
+
+If the fake California doesn't match before 2013, then our fake version was never a good copy in the first place. So we can't trust anything it tells us about what would have happened after the policy either. The whole comparison becomes meaningless.
+In short: good match before the policy = we can trust the results after. Bad match before = we can't.
+
+
+# Lab Overview
+
+## Research Question
+
+**Did California's cap-and-trade program (launched in 2013) reduce per capita CO₂ emissions from the power sector?**
+
+-   $Y$ (outcome): Per capita CO₂ emissions from the power sector (`co2_power_pc_tons`)
+-   Treated unit: California (`CA`)
+-   Treatment year: 2013
+-   Donor pool: Other U.S. states (without similar cap-and-trade policies)
+
+This lab uses a simplified example loosely based on the study by Lessmann & Kramer (2024), with simulated data for teaching purposes. The results should not be interpreted literally as simulated data necessarily includes assumptions that omit complexity found in the original study data.
+
+## Predictors
+
+We use the following pre-treatment (2000–2012) averages as predictors to construct the synthetic control:
+
+| Variable            | Description                               | Role      |
+|------------------|------------------------------------|------------------|
+| `coal_share`        | Share of electricity generation from coal | Predictor |
+| `income_pc`         | Per capita income                         | Predictor |
+| `elec_price`        | Electricity price                         | Predictor |
+| `co2_power_pc_tons` | Pre-treatment average of the outcome      | Predictor |
+
+These variables capture structural differences in energy systems and economies that influence emissions, ensuring the synthetic California is a meaningful comparison.
+
+In this lab, you will:
+
+1.  **Estimate** synthetic California using the `tidysynth` package
+2.  **Evaluate pre-treatment fit** by comparing observed vs. synthetic trends
+3.  **Conduct placebo tests** to assess whether the estimated effect is statistically meaningful
+4.  **Examine the MSPE ratio** for permutation-based inference
+5.  **Review the balance table** to check covariate matching
+
+Why do we include the pre-treatment mean of the outcome variable (`co2_power_pc_tons`) as a predictor? What would happen if we only used the other covariates?
+
+**RESPONSE:** We include the pre-treatment mean of emissions as a predictor because it directly captures California's baseline emissions level and trend. This ensures the synthetic control not only matches California on structural factors like coal share, income, and electricity price, but also on the actual outcome we care about before the policy.
+
+If we only used the other covariates, the synthetic control might match California on economic and energy characteristics but still produce a poor fit on the emissions trajectory itself. Two states can have similar income and energy profiles but very different emission levels due to other unobserved factors. Including the outcome's pre-treatment mean helps account for these unmeasured differences and leads to a tighter, more credible pre-treatment fit.
+
+
+# Analysis
+
+## Setup
+
+#### Load Packages
+
+```{r}
+#| warning: false
+#| message: false
+
+# install.packages("tidysynth")
+# install.packages("tidyverse")
+# install.packages("patchwork")
+
+library(tidysynth) # for synthetic control
+library(tidyverse)
+library(patchwork) # for combining plots
+```
+
+## Load Data
+
+The dataset contains annual state-level panel data with CO₂ emissions, energy mix, income, and electricity prices. Each row represents a state-year observation.
+
+```{r}
+#| eval: false
+#| echo: true
+
+data <- read_csv(here::here("week7", "data", "ca_captrade_scm_sim_data.csv"))
+
+head(data)
+```
+
+1.  How many states are in the donor pool? How many years does the data cover?
+
+**RESPONSE:** The dataset has 1150 rows and each state has data from 2000 onward and extend to around 2022, the data covers approximately 23 years (2000–2022).
+
+With 1150 total rows divided by 23 years, that gives us 50 states. The donor pool contains around 49 states.
+
+We are excluding California (the treated unit) but are including cap-and-trade policies (Connecticut, Delaware, Maine, Maryland, Massachusetts, New Hampshire, New Jersey, New York, Rhode Island, and Vermont) states.
+
+## Declare the Synthetic Control
+
+This is the core step. Using `tidysynth`, we declare the synthetic control specification in a single piped workflow. Let's walk through what each function does:
+
+-   **`synthetic_control()`**: Sets up the SCM framework — specifying the outcome variable, the unit and time identifiers, the treated unit (`"CA"`), the treatment time (`2013`), and requesting placebos for inference.
+-   **`generate_predictor()`**: Defines the pre-treatment characteristics used to match the synthetic control to California. We compute 2000–2012 averages of coal share, income, electricity price, and the outcome variable itself.
+-   **`generate_weights()`**: Chooses donor weights that minimize the distance between California and the synthetic control on the predictors.
+-   **`generate_control()`**: Constructs the synthetic control unit using the optimized weights.
+
+```{r}
+
+# Pipe dataset into the synthetic control workflow
+scm_data <- data %>%
+  # Set up the SCM framework
+  synthetic_control(
+    outcome = co2_power_pc_tons, # The outcome variable we want to study
+    unit = state, # Column that identifies each unit (state)
+    time = year, # Column that identifies the time period
+    i_unit = "CA", # The treated unit (California)
+    i_time = 2013, # The year the treatment (cap-and-trade) began
+    # Run SCM on all donor states too for placebo tests
+    generate_placebos = TRUE) %>% 
+  # Define pre-treatment predictors using 2000-2012 averages
+  generate_predictor(
+    time_window = 2000:2012, # Use pre-treatment period only
+    coal_share = mean(coal_share, na.rm = TRUE), # Average share of coal in electricity generation
+    income_pc = mean(income_pc, na.rm = TRUE), # Average per capita income
+    elec_price = mean(elec_price, na.rm = TRUE), # Average electricity price
+    # Average of the outcome variable itself
+    co2_pre_mean = mean(co2_power_pc_tons, na.rm = TRUE)) %>% 
+  # Find the optimal donor state weights that minimize the distance
+  # between California and the synthetic control on the predictors
+  generate_weights(
+    optimization_window = 2000:2012, # Match over the pre-treatment period
+    margin_ipop = 0.02, # Optimization tolerance parameter
+    sigf_ipop = 7, # Significant figures for optimization
+    bound_ipop = 6) %>% # Upper bound for optimization
+
+  # Build the synthetic control using the optimized weights
+  generate_control()
+```
+
+## Plot Trends
+
+The trends plot is our first visual diagnostic. It overlays the observed outcome for California against synthetic California across the full time series. In the **pre-treatment period** (before the dashed vertical line at 2013), we want to see the two lines tracking closely. In the **post-treatment period**, any divergence represents the estimated treatment effect.
+
+Remember the intuition from lecture: if synthetic CA looks like real CA before 2013, then synthetic CA approximates what would have happened without cap-and-trade.
+
+```{r}
+p1 <- scm_data %>%
+  plot_trends() +
+  labs(title = "California vs Synthetic California",
+       y = "CO2 per capita (power sector)",
+       x = "Year")
+
+p1
+
+```
+
+1.  Do the observed and synthetic trends track each other well before 2013? What does this tell you about the quality of the synthetic control?
+
+**RESPONSE:** Before 2013, the observed and synthetic lines follow each other closely. Both show a general downward trend from around 14 to about 12 tons per capita, with similar fluctuations along the way. There are small gaps in some years (e.g., around 2000 and 2006–2008), but overall the fit is strong. This tells us the synthetic control is a good replica of California before the policy, meaning it's a credible counterfactual.
+
+After 2013, the two lines clearly diverge. California's actual emissions (gray) drop sharply to around 8–9 tons, while synthetic California (pink) only declines gradually to around 10–11 tons. This growing gap suggests that the cap-and-trade policy had a meaningful effect in reducing California's per capita CO₂ emissions beyond what would have happened without it.
+
+2.  What happens to the gap between the two lines after 2013? What does this suggest about the effect of cap-and-trade?
+
+**RESPONSE:** After 2013, a clear and growing gap increases between the two lines. California's observed emissions drop sharply while synthetic California declines much more gradually.
+
+This suggests that the cap-and-trade policy had a substantial effect in reducing California's emissions. The synthetic control represents what California's emissions likely would have been without the policy, so the widening gap indicates that cap-and-trade drove emissions down well beyond what normal trends alone would have produced.
+
+## Plot Gaps (Treatment Effect)
+
+The gaps plot shows the **difference** between observed California and synthetic California over time. Before the treatment, the gap should hover near zero (confirming good pre-treatment fit). After 2013, persistent negative gaps would indicate that California's emissions fell below what they would have been without cap-and-trade — i.e., the magnitude of the gap equals the estimated treatment effect.
+
+```{r}
+p2 <- scm_data %>%
+  plot_differences() +
+  labs(title = "Gap: Observed - Synthetic")
+
+p2
+
+```
+
+Examine the gap plot. Describe what you observe in both the pre-treatment and post-treatment periods.
+
+**RESPONSE:** Pre-treatment (2000–2012): The gap fluctuates around zero, ranging from roughly +0.5 to -0.5. This confirms a reasonably good pre-treatment fit, the synthetic control closely tracks California's actual emissions, with no sustained deviation in either direction.
+
+Post-treatment (2013 onward): The gap drops sharply and stays persistently negative, reaching as low as about -1.9 tons per capita around 2018. The gap never returns to zero after the policy begins. This indicates that California's observed emissions fell well below what the synthetic control predicted, suggesting the cap-and-trade policy had a substantial and sustained effect in reducing per capita CO₂ emissions from the power sector.
+
+## Placebo Tests
+
+Now we assess statistical significance using placebo tests. Recall the procedure from lecture: we apply SCM to **every donor state** as if it received the treatment in 2013, then compare California's gap to the distribution of placebo gaps. If California's post-treatment gap stands out clearly from the placebos, this provides evidence that the effect is real and not just noise.
+
+The plot below overlays California's gap (highlighted) against all placebo gaps. Ideally, California's line should diverge noticeably from the placebo distribution after 2013.
+
+```{r}
+p3 <- scm_data %>%
+  plot_placebos() +
+  labs(title = "Placebo Tests")
+
+p3
+```
+
+Does California's gap stand out from the placebo distribution after 2013?
+
+**RESPONSE:** Yes. After 2013, California's gap (the bold pink line) clearly separates from the gray placebo lines and moves toward the bottom of the distribution. By around 2018–2020, California's gap reaches nearly -2.0, which is well beyond where most placebo states fall. The gray lines mostly stay clustered between -1 and +1, while California consistently sits below them.
+
+This is strong evidence that the estimated treatment effect is not due to random chance. If the cap-and-trade policy had no real effect, we would expect California's gap to blend in with the placebo distribution. Instead, it stands out as an outlier, supporting the conclusion that the policy had a genuine impact on reducing emissions.
+
+## MSPE Ratio Plot
+
+The MSPE ratio provides a more formal way to assess significance. Recall from lecture that the MSPE ratio compares the post-treatment signal to the pre-treatment error:
+
+$$
+\text{MSPE Ratio} = \frac{MSPE_{post}}{MSPE_{pre}}
+$$
+
+A high ratio means the unit's post-treatment gap is large **relative to its pre-treatment fit**. If California's MSPE ratio ranks at or near the top, the divergence is unlikely due to chance.
+
+```{r}
+p4 <- scm_data %>%
+  plot_mspe_ratio() +
+  labs(title = "MSPE Ratio (Permutation Inference)")
+
+p4
+```
+
+::: {.callout-tip title="Tip"}
+Click the zoom button to open the plot in a new window to better view y axis labels!
+:::
+
+1.  Where does California rank in the MSPE ratio distribution? What does this imply about the statistical significance of the estimated effect?
+
+**RESPONSE:** California ranks first with the highest MSPE ratio at around 17, far above every donor state. The next highest state has a ratio of only about 3.5. This means California's post-treatment gap is extremely large relative to its pre-treatment fit — much more so than any placebo state.
+
+This strongly supports the statistical significance of the estimated treatment effect. If California's ranking is 1st out of roughly 50 states, the implied p-value is approximately 1/50 = 0.02, which is well below the conventional 0.05 threshold. In other words, it is very unlikely that a gap this large would occur by chance, reinforcing the conclusion that the cap-and-trade policy had a real effect on reducing emissions.
+
+## Balance Table
+
+The balance table compares pre-treatment predictor values for **real California**, **synthetic California**, and the **donor pool average**. Good balance means the synthetic control closely matches California on all predictors — not just the outcome. Large discrepancies between California and its synthetic version would indicate that the optimization did not find a good match, undermining the credibility of the counterfactual.
+
+```{r}
+balance <- scm_data %>%
+  grab_balance_table()
+
+print(balance)
+```
+
+1.  How well does synthetic California match real California on each predictor? Are there any variables where the match is particularly poor?
+
+**RESPONSE:** Synthetic California matches real California very well on most predictors. The pre-treatment emissions mean is nearly identical (12.5 vs 12.5), coal share matches exactly (0.396 vs 0.396), and per capita income is almost a perfect match (57,296 vs 57,294). The only variable with a slightly weaker match is electricity price (0.0935 vs 0.111), where synthetic California is somewhat higher. However, this discrepancy is relatively minor and does not undermine the overall quality of the synthetic control. Overall, the balance table indicates a strong match, giving us confidence in the credibility of the counterfactual.
+
+
+# Discussion & Reflection
+
+1.  **Summarize the findings**: Based on the trends plot, gap plot, placebo tests, and MSPE ratio, what is your overall conclusion about the effect of California's cap-and-trade program on per capita CO₂ emissions from the power sector? Does California's emissions fall below synthetic California?
+
+**RESPONSE:** The evidence across all four diagnostics consistently points to the same conclusion: California's cap-and-trade program had a substantial effect in reducing per capita CO₂ emissions from the power sector.
+
+The trends plot shows that observed and synthetic California track closely before 2013, confirming a good pre-treatment fit. After 2013, California's actual emissions drop sharply while synthetic California declines only gradually, creating a clear and growing gap.
+
+The gap plot confirms that the difference hovers near zero before 2013 but turns persistently negative afterward, reaching nearly -2.0 tons per capita by 2018.
+
+The placebo tests show that California's gap clearly stands out from the distribution of donor state gaps after 2013, indicating the effect is unlikely to be random noise.
+
+The MSPE ratio provides the strongest statistical evidence — California ranks first among all states with a ratio of roughly 17, far exceeding any donor state, implying a p-value of approximately 0.02.
+
+Yes, California's emissions fall well below synthetic California after the policy. Taken together, these results provide strong evidence that the cap-and-trade program caused a meaningful reduction in California's power sector emissions beyond what would have occurred without the policy.
+
+2.  **Diagnostics checklist**: Review the four criteria from lecture — strong pre-treatment fit, transparent donor pool, no spillover, and favorable placebo comparison. How does our analysis perform on each?
+
+**RESPONSE:**
+Strong pre-treatment fit: The analysis performs well here. The trends plot shows observed and synthetic California tracking closely from 2000 to 2012, and the balance table confirms a strong match on predictors like emissions, coal share, and income. The only minor weakness is a slight mismatch on electricity price, but it is not large enough to undermine credibility.
+
+Transparent donor pool: The donor pool is clearly defined and includes all U.S. states that did not implement cap-and-trade or similar carbon pricing policies during the study period. The selection criteria are transparent and follow established methods, making it easy to understand which states are included and why.
+
+No spillover: This assumption requires that California's policy did not affect emissions in donor states. This is generally reasonable since cap-and-trade is a state-level regulation. However, there could be minor spillover if firms relocated emissions-producing activities to neighboring states or if energy markets shifted across state borders. For this simulated exercise, the assumption appears to hold.
+
+Favorable placebo comparison: The analysis performs strongly here. The placebo tests show California's gap clearly separating from the donor state distribution after 2013, and the MSPE ratio ranks California first among all states with a ratio far above any placebo. This provides strong statistical evidence that the estimated effect is not due to chance.
+
+Overall, the analysis meets all four diagnostic criteria well, supporting a credible causal claim that cap-and-trade reduced California's emissions.
+
+3.  **Donor pool selection**: Why is it important that donor states did not implement similar carbon pricing policies during the study period? What would happen to our estimates if some donor states also adopted cap-and-trade (hint: think about spillover and the no-interference assumption)?
+
+**RESPONSE:** It is important that donor states did not have similar carbon pricing policies because they are supposed to represent what California would have looked like without the policy. If donor states also adopted cap-and-trade, their emissions would decline too, not because of normal trends, but because of their own policy treatment. This would contaminate the synthetic control.
+If treated states were included in the donor pool, the synthetic California would be built partly from states that also experienced emission reductions due to cap-and-trade. This would make the synthetic control's emissions artificially lower, shrinking the gap between observed and synthetic California. As a result, the estimated treatment effect would be biased downward — we would underestimate the true impact of California's policy.
+
+This directly violates the no-interference assumption (SUTVA), which requires that the treatment of one unit does not affect the outcomes of other units. If donor states adopt similar policies, their outcomes are no longer untreated, and the entire basis for the counterfactual breaks down. The synthetic control would no longer represent a credible "no policy" scenario, undermining the causal validity of the analysis.
+
+4.  **Comparison to other methods**: How is SCM different from matching? What are the advantages of building a weighted synthetic counterfactual from the donor pool to match the treated unit's pre-treatment outcome path, versus matching on observed covariates?
+
+**RESPONSE:** Traditional matching pairs the treated unit with one or more control units based on similarity in observed covariates like income, energy mix, or population. It finds existing units that look most like California on these characteristics. SCM, on the other hand, does not rely on any single existing unit. Instead, it constructs a weighted combination of multiple donor states to create a synthetic version of California that matches not only on covariates but also on the pre-treatment outcome trajectory itself.
+
+What are the advantages of SCM?
+First, no single state may be a good match for California on all relevant dimensions, but a weighted blend of several states can be. SCM overcomes the limitation of needing to find a near perfect existing match.
+
+Second, SCM directly matches on the pre-treatment outcome path, not just static covariates. This is a major advantage because if the synthetic control tracks California's emissions closely over many years before the policy, it implicitly accounts for both observed and unobserved factors driving emissions. Matching on covariates alone cannot guarantee this. Two states might look similar on income and coal share but still follow very different emissions trends due to unmeasured differences.
+
+Third, SCM makes the counterfactual construction transparent. The donor weights are explicit, so we can see exactly which states contribute to the synthetic control and by how much. Traditional matching is less transparent in how comparison units are selected and weighted.
+
+In short, SCM provides a more flexible, transparent, and credible counterfactual by matching on the outcome's actual trajectory rather than relying solely on observable characteristics.
+
